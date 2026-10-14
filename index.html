@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title id="pageTitle">یاری X و O پێشکەوتوو</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Noto Sans Arabic', system-ui, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .font-poppins {
+            font-family: 'Poppins', system-ui, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 60%, #050814 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .glass-box {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-button:active {
+            transform: scale(0.96);
+        }
+
+        /* Glow effects for X and O */
+        .glow-cyan {
+            text-shadow: 0 0 15px rgba(6, 182, 212, 0.8), 0 0 30px rgba(6, 182, 212, 0.4);
+        }
+
+        .glow-pink {
+            text-shadow: 0 0 15px rgba(236, 72, 153, 0.8), 0 0 30px rgba(236, 72, 153, 0.4);
+        }
+
+        /* Pop in animation for moves */
+        @keyframes popIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-pop {
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Pulse highlight for active turn */
+        @keyframes pulseBorder {
+            0%, 100% { border-color: rgba(99, 102, 241, 0.3); box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+            50% { border-color: rgba(168, 85, 247, 0.8); box-shadow: 0 0 20px rgba(168, 85, 247, 0.5); }
+        }
+
+        .turn-active {
+            animation: pulseBorder 1.8s infinite;
+        }
+
+        #confettiCanvas, #winningLineCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        #winningLineCanvas {
+            z-index: 20;
+        }
+
+        #confettiCanvas {
+            z-index: 50;
+        }
+
+        /* Splash Screen Styling */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            background: #050814;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2rem 1.5rem;
+            transition: opacity 0.6s ease;
+        }
+
+        .studio-subtitle {
+            letter-spacing: 0.4em;
+        }
+
+        .slogan-text {
+            letter-spacing: 0.15em;
+        }
+    </style>
+</head>
+<body class="text-white flex flex-col items-center justify-center p-3 sm:p-6 relative select-none">
+
+    <!-- Splash Screen -->
+    <div id="splashScreen">
+        <div></div>
+
+        <div class="flex flex-col items-center gap-2 text-center p-8 rounded-3xl bg-slate-900/40 border border-white/5 backdrop-blur-md shadow-2xl max-w-sm w-full animate-pop font-poppins">
+            <h1 class="text-4xl sm:text-5xl font-black tracking-tight">
+                <span class="text-white">Zagros</span><span class="text-cyan-400">Play</span>
+            </h1>
+            
+            <div class="flex items-center gap-3 mt-1 opacity-90">
+                <span class="w-5 h-[2px] bg-slate-400"></span>
+                <span class="studio-subtitle text-sm sm:text-base font-bold text-slate-300 uppercase">
+                    STUDIOS
+                </span>
+                <span class="w-5 h-[2px] bg-slate-400"></span>
+            </div>
+        </div>
+
+        <footer class="text-center font-poppins">
+            <p class="slogan-text text-xs sm:text-sm font-semibold text-cyan-300/80 uppercase tracking-widest">
+                Simple Games <span class="text-pink-400">★</span> Big Smiles
+            </p>
+        </footer>
+    </div>
+
+    <!-- Canvas overlay for Confetti and Winning Line Animations -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <div class="w-full max-w-md mx-auto flex flex-col items-center z-10">
+
+        <!-- Top Navigation / Header -->
+        <header class="w-full flex items-center justify-between mb-5 px-2">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center font-black text-xl shadow-lg">
+                </div>
+                <div>
+                    <h1 id="headerTitle" class="text-xl font-black bg-gradient-to-r from-cyan-400 via-purple-300 to-pink-500 bg-clip-text text-transparent">
+                        یاری X و O
+                    </h1>
+                    <p class="text-[11px] text-slate-400 font-medium"></p>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <!-- Language Selector -->
+                <select id="langSelect" onchange="changeLanguage(this.value)" class="glass-button px-2.5 py-1.5 rounded-2xl text-xs font-bold text-cyan-300 focus:outline-none cursor-pointer">
+                    <option value="ckb" style="background: #0f172a; color: white;">کوردی (سۆرانی)</option>
+                    <option value="kmr" style="background: #0f172a; color: white;">Kurdî (Kurmancî)</option>
+                    <option value="en" style="background: #0f172a; color: white;">English</option>
+                </select>
+
+                <button id="soundToggle" onclick="toggleSound()" class="glass-button w-11 h-11 rounded-2xl flex items-center justify-center text-xl hover:bg-white/10 transition" title="دەنگ">
+                    🔊
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Screen: Settings & Mode Selection -->
+        <div id="menuScreen" class="w-full glass-box rounded-3xl p-6 flex flex-col gap-5 animate-pop">
+            
+            <div class="text-center space-y-1">
+                <h2 id="menuTitle" class="text-lg font-bold text-cyan-300">ڕێکخستن و دەستپێکردن</h2>
+                <p id="menuSubtitle" class="text-xs text-slate-400">ناوی یاریزان</p>
+            </div>
+
+            <!-- Player Names Input -->
+            <div class="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                <div>
+                    <label id="labelP1Name" class="text-xs text-slate-300 font-semibold mb-1 block">ناوی یاریزانی یەکەم (X):</label>
+                    <input type="text" id="p1NameInput" value="یاریزان 1" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-sm text-cyan-300 focus:outline-none focus:border-cyan-500 transition">
+                </div>
+                
+                <div id="p2Container">
+                    <label id="labelP2Name" class="text-xs text-slate-300 font-semibold mb-1 block">ناوی یاریزانی دووەم (O):</label>
+                    <input type="text" id="p2NameInput" value="یاریزان 2" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-2 text-sm text-pink-300 focus:outline-none focus:border-pink-500 transition">
+                </div>
+            </div>
+
+            <!-- Symbol Choice (Who Starts First) -->
+            <div class="flex flex-col gap-2">
+                <label id="labelStarter" class="text-xs text-slate-300 font-semibold">یاریزانی دەستپێکەر:</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="btnChooseX" onclick="selectStartingSymbol('X')" class="py-2.5 rounded-xl border border-cyan-500/50 bg-cyan-500/10 text-cyan-400 font-bold text-sm transition flex items-center justify-center gap-2">
+                        <span id="textChooseX">X دەستپێدەکات</span>
+                    </button>
+                    <button id="btnChooseO" onclick="selectStartingSymbol('O')" class="py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 font-bold text-sm transition flex items-center justify-center gap-2">
+                        <span id="textChooseO">O دەستپێدەکات</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Modes Buttons -->
+            <div class="flex flex-col gap-3 pt-2">
+                <button onclick="showDifficultyOptions()" class="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-sm shadow-lg hover:opacity-95 active:scale-98 transition flex items-center justify-between">
+                    <span id="btnAIMode" class="flex items-center gap-2">یاری دژی بۆتی زیرەک (AI)</span>
+                    <span id="badgeSingle" class="text-xs bg-white/20 px-2 py-0.5 rounded-full">تاکەکەس</span>
+                </button>
+                
+                <button onclick="startTwoPlayerMode()" class="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-600 font-bold text-sm shadow-lg hover:opacity-95 active:scale-98 transition flex items-center justify-between">
+                    <span id="btn2PMode" class="flex items-center gap-2">یاری دوو کەسی (تەنیشت یەک)</span>
+                    <span id="badgeMulti" class="text-xs bg-white/20 px-2 py-0.5 rounded-full">دووکەس</span>
+                </button>
+
+                <button id="btnStats" onclick="openStatsModal()" class="w-full py-2.5 px-4 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition flex items-center justify-center gap-2">
+                    ئاماری سەرکەوتنەکان
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Difficulty Sub-Menu -->
+        <div id="difficultyScreen" class="hidden w-full glass-box rounded-3xl p-6 flex flex-col gap-5 animate-pop">
+            <div class="text-center space-y-1">
+                <h2 id="diffTitle" class="text-lg font-bold text-purple-300">ئاستی زیرەکی بۆت (AI)</h2>
+                <p id="diffSubtitle" class="text-xs text-slate-400">ئاستی گونجاو بۆ تواناکانت هەڵبژێرە</p>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="startBotMode('easy')" class="w-full py-3.5 px-5 rounded-2xl bg-emerald-600/80 hover:bg-emerald-600 font-bold text-sm transition flex items-center justify-between">
+                    <span id="diffEasy">ئاسان (Easy)</span>
+                    <span id="descEasy" class="text-xs opacity-80">جوڵەی هەڕەمەکی</span>
+                </button>
+                <button onclick="startBotMode('medium')" class="w-full py-3.5 px-5 rounded-2xl bg-amber-600/80 hover:bg-amber-600 font-bold text-sm transition flex items-center justify-between">
+                    <span id="diffMedium">مامناوەند (Medium)</span>
+                    <span id="descMedium" class="text-xs opacity-80">تێکەڵەی زانیاری و هەڵە</span>
+                </button>
+                <button onclick="startBotMode('hard')" class="w-full py-3.5 px-5 rounded-2xl bg-rose-600/80 hover:bg-rose-600 font-bold text-sm transition flex items-center justify-between">
+                    <span id="diffHard">قورس (مەحاڵ - Minimax)</span>
+                    <span id="descHard" class="text-xs opacity-80">هیچ هەڵەیەک ناکات!</span>
+                </button>
+            </div>
+
+            <button id="btnBackToMenu" onclick="backToMenu()" class="w-full py-2.5 rounded-xl bg-slate-800 text-xs text-slate-300 hover:bg-slate-700 transition">
+                گەڕانەوە بۆ مێنیو
+            </button>
+        </div>
+
+        <!-- Gameplay Screen -->
+        <div id="gameScreen" class="hidden w-full flex flex-col gap-5 animate-pop">
+            
+            <!-- Scoreboard Banner -->
+            <div class="grid grid-cols-3 gap-2.5 w-full">
+                <div id="scoreBoxX" class="glass-box p-3 rounded-2xl text-center border-cyan-500/30 transition-all duration-300">
+                    <span id="p1Label" class="text-[11px] text-cyan-400 font-bold block truncate">یاریزان X</span>
+                    <span id="scoreX" class="text-2xl font-black mt-0.5 text-cyan-300 block">0</span>
+                </div>
+                <div class="glass-box p-3 rounded-2xl text-center flex flex-col items-center justify-center">
+                    <span id="labelDraw" class="text-[11px] text-amber-400 font-bold block">یەکسان</span>
+                    <span id="scoreDraw" class="text-2xl font-black mt-0.5 text-amber-300 block">0</span>
+                </div>
+                <div id="scoreBoxO" class="glass-box p-3 rounded-2xl text-center border-pink-500/30 transition-all duration-300">
+                    <span id="p2Label" class="text-[11px] text-pink-400 font-bold block truncate">یاریزان O</span>
+                    <span id="scoreO" class="text-2xl font-black mt-0.5 text-pink-300 block">0</span>
+                </div>
+            </div>
+
+            <!-- Turn Status Banner -->
+            <div id="turnBanner" class="w-full py-2 px-4 rounded-xl glass-box text-center text-xs font-bold tracking-wide text-cyan-300">
+                گێمی یاریزانە...
+            </div>
+
+            <!-- Game Board Grid (3x3) with Canvas Overlay for Win Line -->
+            <div class="relative w-full aspect-square glass-box p-3.5 rounded-3xl shadow-2xl">
+                <canvas id="winningLineCanvas"></canvas>
+
+                <div class="grid grid-cols-3 gap-3 w-full h-full">
+                    <button onclick="cellClicked(0)" id="cell-0" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    <button onclick="cellClicked(1)" id="cell-1" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    <button onclick="cellClicked(2)" id="cell-2" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    
+                    <button onclick="cellClicked(3)" id="cell-3" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    <button onclick="cellClicked(4)" id="cell-4" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    <button onclick="cellClicked(5)" id="cell-5" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    
+                    <button onclick="cellClicked(6)" id="cell-6" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    <button onclick="cellClicked(7)" id="cell-7" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                    <button onclick="cellClicked(8)" id="cell-8" class="cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150"></button>
+                </div>
+            </div>
+
+            <!-- Controls Buttons -->
+            <div class="flex gap-3 w-full">
+                <button onclick="resetCurrentRound()" class="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 font-bold text-xs shadow-lg hover:opacity-90 active:scale-98 transition flex items-center justify-center gap-2">
+                    <span id="btnNewRound">گێڕی نوێ</span>
+                </button>
+                <button onclick="backToMenu()" class="py-3 px-5 rounded-2xl bg-slate-800/90 border border-slate-700/80 font-semibold text-xs text-slate-300 hover:bg-slate-700 transition flex items-center justify-center gap-1.5">
+                    <span id="btnMenuGame">مێنیو</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Stats View Modal -->
+        <div id="statsModal" class="hidden w-full glass-box rounded-3xl p-6 flex flex-col gap-5 animate-pop">
+            <div class="flex items-center justify-between">
+                <h2 id="statsTitle" class="text-lg font-bold text-cyan-300 flex items-center gap-2">ئاماری سەرجەم یارییەکان</h2>
+                <button onclick="closeStatsModal()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+            </div>
+            
+            <div class="space-y-2.5 text-xs">
+                <div class="flex justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                    <span id="statTotalLabel" class="text-slate-300">کۆی گشتی یاریەکان:</span>
+                    <span id="statTotal" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/20">
+                    <span id="statXLabel" class="text-cyan-300">سەرکەوتنەکانی X:</span>
+                    <span id="statXWins" class="font-bold text-cyan-400">0</span>
+                </div>
+                <div class="flex justify-between p-3 rounded-xl bg-pink-950/40 border border-pink-500/20">
+                    <span id="statOLabel" class="text-pink-300">سەرکەوتنەکانی O:</span>
+                    <span id="statOWins" class="font-bold text-pink-400">0</span>
+                </div>
+                <div class="flex justify-between p-3 rounded-xl bg-amber-950/40 border border-amber-500/20">
+                    <span id="statDrawLabel" class="text-amber-300">یەکسان بوون:</span>
+                    <span id="statDraws" class="font-bold text-amber-400">0</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2.5 pt-2">
+                <button id="btnClearStats" onclick="clearStoredStats()" class="flex-1 py-2.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 font-semibold text-xs transition">سڕینەوەی ئامار</button>
+                <button id="btnBackStats" onclick="closeStatsModal()" class="flex-1 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 font-semibold text-xs transition">گەڕانەوە</button>
+            </div>
+        </div>
+
+        <!-- Game Result Overlay Modal -->
+        <div id="gameOverModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="glass-box w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl flex flex-col items-center gap-4 animate-pop border border-white/15">
+                <div id="gameOverIcon" class="text-6xl my-1"></div>
+                <div>
+                    <h3 id="gameOverTitle" class="text-2xl font-black text-cyan-300">پیرۆزە!</h3>
+                    <p id="gameOverDesc" class="text-xs text-slate-300 mt-1">یاریزانی X سەرکەوتنی بەدەستهێنا.</p>
+                </div>
+                <button id="btnNextRound" onclick="closeGameOverModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-sm shadow-lg hover:opacity-90 transition mt-2">
+                    گێمی بەردەوام
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* --- MULTI-LANGUAGE DICTIONARY --- */
+        const translations = {
+            ckb: {
+                dir: "rtl",
+                pageTitle: "یاری X و O پێشکەوتوو",
+                headerTitle: "یاری X و O",
+                menuTitle: "ڕێکخستن و دەستپێکردن",
+                menuSubtitle: "ناوی یاریزان",
+                labelP1Name: "ناوی یاریزانی یەکەم (X):",
+                labelP2Name: "ناوی یاریزانی دووەم (O):",
+                defaultP1: "یاریزان 1",
+                defaultP2: "یاریزان 2",
+                labelStarter: "یاریزانی دەستپێکەر:",
+                textChooseX: "X دەستپێدەکات",
+                textChooseO: "O دەستپێدەکات",
+                btnAIMode: "یاری دژی بۆتی زیرەک (AI)",
+                badgeSingle: "تاکەکەس",
+                btn2PMode: "یاری دوو کەسی (تەنیشت یەک)",
+                badgeMulti: "دووکەس",
+                btnStats: "ئاماری سەرکەوتنەکان",
+                diffTitle: "ئاستی زیرەکی بۆت (AI)",
+                diffSubtitle: "ئاستی گونجاو بۆ تواناکانت هەڵبژێرە",
+                diffEasy: "ئاسان (Easy)",
+                descEasy: "جوڵەی هەڕەمەکی",
+                diffMedium: "مامناوەند (Medium)",
+                descMedium: "تێکەڵەی زانیاری و هەڵە",
+                diffHard: "قورس (مەحاڵ - Minimax)",
+                descHard: "هیچ هەڵەیەک ناکات!",
+                btnBackToMenu: "گەڕانەوە بۆ مێنیو",
+                labelDraw: "یەکسان",
+                btnNewRound: "گێڕی نوێ",
+                btnMenuGame: "مێنیو",
+                statsTitle: "ئاماری سەرجەم یارییەکان",
+                statTotalLabel: "کۆی گشتی یاریەکان:",
+                statXLabel: "سەرکەوتنەکانی X:",
+                statOLabel: "سەرکەوتنەکانی O:",
+                statDrawLabel: "یەکسان بوون:",
+                btnClearStats: "سڕینەوەی ئامار",
+                btnBackStats: "گەڕانەوە",
+                btnNextRound: "گێمی بەردەوام",
+                botName: "بۆت",
+                turnPrefix: "گێڕی: ",
+                drawTitle: "یەکسان بوون!",
+                drawDesc: "هیچ یاریزانێک نەبووە سەرکەوتوو.",
+                winTitle: "پیرۆزە!",
+                winDesc: "سەرکەوتوو لەم گێمەدا: "
+            },
+            kmr: {
+                dir: "ltr",
+                pageTitle: "Lîstika X û O ya Pêşketî",
+                headerTitle: "Lîstika X û O",
+                menuTitle: "Mîheng û Destpêk",
+                menuSubtitle: "Navê Lîstikvanan",
+                labelP1Name: "Navê lîstikvanê yekem (X):",
+                labelP2Name: "Navê lîstikvanê duyem (O):",
+                defaultP1: "Lîstikvan 1",
+                defaultP2: "Lîstikvan 2",
+                labelStarter: "Lîstikvanê destpêkê:",
+                textChooseX: "X destpê dike",
+                textChooseO: "O destpê dike",
+                btnAIMode: "Lîstin li dijî Botê Bîrdoz (AI)",
+                badgeSingle: "Takkes",
+                btn2PMode: "Lîstika du kesan (Li kêleka hev)",
+                badgeMulti: "Du kes",
+                btnStats: "Statîstîkên Serketinê",
+                diffTitle: "Asta Zîrekîya Botê (AI)",
+                diffSubtitle: "Asta guncaw ji bo jêhatiniya xwe hilbijêre",
+                diffEasy: "Hêsan (Easy)",
+                descEasy: "Tevgerên bêtêl",
+                diffMedium: "Navîn (Medium)",
+                descMedium: "Têkeliya zanîn û çewtiyan",
+                diffHard: "Giran (Neşe - Minimax)",
+                descHard: "Tu çewtiyan nake!",
+                btnBackToMenu: "Vegere Menuyê",
+                labelDraw: "Wekhev",
+                btnNewRound: "Lîstikek nû",
+                btnMenuGame: "Menu",
+                statsTitle: "Statîstîkên Lîstikê",
+                statTotalLabel: "Gشتی lîstikan:",
+                statXLabel: "Serketinên X:",
+                statOLabel: "Serketinên O:",
+                statDrawLabel: "Wekhevbûn:",
+                btnClearStats: "Jêbirina Statîstîkan",
+                btnBackStats: "Vegere",
+                btnNextRound: "Lîstika Din",
+                botName: "Bot",
+                turnPrefix: "Gera: ",
+                drawTitle: "Wekhev bûn!",
+                drawDesc: "Tu lîstikvan serketî nebû.",
+                winTitle: "Pîroz be!",
+                winDesc: "Serketiyê vê gerê: "
+            },
+            en: {
+                dir: "ltr",
+                pageTitle: "Advanced Tic-Tac-Toe",
+                headerTitle: "Tic-Tac-Toe Game",
+                menuTitle: "Settings & Setup",
+                menuSubtitle: "Player Names",
+                labelP1Name: "Player 1 Name (X):",
+                labelP2Name: "Player 2 Name (O):",
+                defaultP1: "Player 1",
+                defaultP2: "Player 2",
+                labelStarter: "Starting Player:",
+                textChooseX: "X Starts First",
+                textChooseO: "O Starts First",
+                btnAIMode: "Play Against Smart Bot (AI)",
+                badgeSingle: "Solo",
+                btn2PMode: "Two Player Mode (Local)",
+                badgeMulti: "2-Player",
+                btnStats: "Victory Statistics",
+                diffTitle: "Bot Difficulty (AI)",
+                diffSubtitle: "Choose the appropriate skill level",
+                diffEasy: "Easy",
+                descEasy: "Random moves",
+                diffMedium: "Medium",
+                descMedium: "Mix of logic and mistakes",
+                diffHard: "Hard (Unbeatable - Minimax)",
+                descHard: "Makes zero mistakes!",
+                btnBackToMenu: "Back to Menu",
+                labelDraw: "Draw",
+                btnNewRound: "New Round",
+                btnMenuGame: "Menu",
+                statsTitle: "All-Time Game Statistics",
+                statTotalLabel: "Total Games:",
+                statXLabel: "X Wins:",
+                statOLabel: "O Wins:",
+                statDrawLabel: "Draws:",
+                btnClearStats: "Clear Stats",
+                btnBackStats: "Back",
+                btnNextRound: "Continue Game",
+                botName: "Bot",
+                turnPrefix: "Turn: ",
+                drawTitle: "It's a Draw!",
+                drawDesc: "No player won this round.",
+                winTitle: "Victory!",
+                winDesc: "Winner of this round: "
+            }
+        };
+
+        let currentLang = 'ckb';
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            
+            // Document direction and language settings
+            document.documentElement.lang = lang === 'ckb' ? 'ku' : (lang === 'kmr' ? 'ku' : 'en');
+            document.documentElement.dir = t.dir;
+
+            // Header elements
+            document.getElementById('pageTitle').innerText = t.pageTitle;
+            document.getElementById('headerTitle').innerText = t.headerTitle;
+
+            // Menu elements
+            document.getElementById('menuTitle').innerText = t.menuTitle;
+            document.getElementById('menuSubtitle').innerText = t.menuSubtitle;
+            document.getElementById('labelP1Name').innerText = t.labelP1Name;
+            document.getElementById('labelP2Name').innerText = t.labelP2Name;
+            
+            if(document.getElementById('p1NameInput').value === 'یاریزان 1' || document.getElementById('p1NameInput').value === 'Lîstikvan 1' || document.getElementById('p1NameInput').value === 'Player 1') {
+                document.getElementById('p1NameInput').value = t.defaultP1;
+                player1Name = t.defaultP1;
+            }
+            if(document.getElementById('p2NameInput').value === 'یاریزان 2' || document.getElementById('p2NameInput').value === 'Lîstikvan 2' || document.getElementById('p2NameInput').value === 'Player 2') {
+                document.getElementById('p2NameInput').value = t.defaultP2;
+                player2Name = t.defaultP2;
+            }
+
+            document.getElementById('labelStarter').innerText = t.labelStarter;
+            document.getElementById('textChooseX').innerText = t.textChooseX;
+            document.getElementById('textChooseO').innerText = t.textChooseO;
+            document.getElementById('btnAIMode').innerText = t.btnAIMode;
+            document.getElementById('badgeSingle').innerText = t.badgeSingle;
+            document.getElementById('btn2PMode').innerText = t.btn2PMode;
+            document.getElementById('badgeMulti').innerText = t.badgeMulti;
+            document.getElementById('btnStats').innerText = t.btnStats;
+
+            // Difficulty elements
+            document.getElementById('diffTitle').innerText = t.diffTitle;
+            document.getElementById('diffSubtitle').innerText = t.diffSubtitle;
+            document.getElementById('diffEasy').innerText = t.diffEasy;
+            document.getElementById('descEasy').innerText = t.descEasy;
+            document.getElementById('diffMedium').innerText = t.diffMedium;
+            document.getElementById('descMedium').innerText = t.descMedium;
+            document.getElementById('diffHard').innerText = t.diffHard;
+            document.getElementById('descHard').innerText = t.descHard;
+            document.getElementById('btnBackToMenu').innerText = t.btnBackToMenu;
+
+            // Gameplay elements
+            document.getElementById('labelDraw').innerText = t.labelDraw;
+            document.getElementById('btnNewRound').innerText = t.btnNewRound;
+            document.getElementById('btnMenuGame').innerText = t.btnMenuGame;
+
+            // Stats modal elements
+            document.getElementById('statsTitle').innerText = t.statsTitle;
+            document.getElementById('statTotalLabel').innerText = t.statTotalLabel;
+            document.getElementById('statXLabel').innerText = t.statXLabel;
+            document.getElementById('statOLabel').innerText = t.statOLabel;
+            document.getElementById('statDrawLabel').innerText = t.statDrawLabel;
+            document.getElementById('btnClearStats').innerText = t.btnClearStats;
+            document.getElementById('btnBackStats').innerText = t.btnBackStats;
+            document.getElementById('btnNextRound').innerText = t.btnNextRound;
+
+            updateTurnIndicator();
+        }
+
+        /* --- SPLASH SCREEN HANDLER --- */
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 600);
+            }, 5000);
+
+            loadSavedStats();
+            const savedSound = localStorage.getItem('tictactoe_sound');
+            if (savedSound !== null) {
+                soundEnabled = savedSound === 'true';
+                document.getElementById('soundToggle').innerText = soundEnabled ? '🔊' : '🔇';
+            }
+            window.addEventListener('resize', handleCanvasResize);
+        });
+
+        /* --- GAME STATE & VARIABLES --- */
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let gameActive = false;
+        let currentPlayer = 'X';
+        let startingPlayer = 'X';
+        let gameMode = 'twoPlayer';
+        let botDifficulty = 'easy';
+        let soundEnabled = true;
+
+        let player1Name = 'یاریزان 1';
+        let player2Name = 'یاریزان 2';
+
+        let scores = { X: 0, O: 0, draw: 0 };
+        let stats = { total: 0, xWins: 0, oWins: 0, draws: 0 };
+
+        const winningCombos = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        /* --- SOUND SYNTHESIZER (Web Audio API) --- */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'move') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(350, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.08);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'win') {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const noteOsc = audioCtx.createOscillator();
+                    const noteGain = audioCtx.createGain();
+                    noteOsc.connect(noteGain);
+                    noteGain.connect(audioCtx.destination);
+                    noteOsc.type = 'triangle';
+                    noteOsc.frequency.setValueAtTime(freq, now + idx * 0.1);
+                    noteGain.gain.setValueAtTime(0.15, now + idx * 0.1);
+                    noteGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.3);
+                    noteOsc.start(now + idx * 0.1);
+                    noteOsc.stop(now + idx * 0.1 + 0.3);
+                });
+            } else if (type === 'draw') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.linearRampToValueAtTime(160, now + 0.25);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('tictactoe_sound', soundEnabled);
+            document.getElementById('soundToggle').innerText = soundEnabled ? '🔊' : '🔇';
+            if (soundEnabled) playSound('move');
+        }
+
+        function loadSavedStats() {
+            const saved = localStorage.getItem('tictactoe_stats_v2');
+            if (saved) {
+                try { stats = JSON.parse(saved); } catch(e){}
+            }
+        }
+
+        function saveStats() {
+            localStorage.setItem('tictactoe_stats_v2', JSON.stringify(stats));
+        }
+
+        /* --- MENU NAVIGATION --- */
+        function selectStartingSymbol(sym) {
+            playSound('move');
+            startingPlayer = sym;
+            const btnX = document.getElementById('btnChooseX');
+            const btnO = document.getElementById('btnChooseO');
+
+            if (sym === 'X') {
+                btnX.className = "py-2.5 rounded-xl border border-cyan-500/50 bg-cyan-500/10 text-cyan-400 font-bold text-sm transition flex items-center justify-center gap-2";
+                btnO.className = "py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 font-bold text-sm transition flex items-center justify-center gap-2";
+            } else {
+                btnO.className = "py-2.5 rounded-xl border border-pink-500/50 bg-pink-500/10 text-pink-400 font-bold text-sm transition flex items-center justify-center gap-2";
+                btnX.className = "py-2.5 rounded-xl border border-white/10 bg-white/5 text-slate-400 font-bold text-sm transition flex items-center justify-center gap-2";
+            }
+        }
+
+        function showDifficultyOptions() {
+            playSound('move');
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('difficultyScreen').classList.remove('hidden');
+        }
+
+        function startTwoPlayerMode() {
+            playSound('move');
+            gameMode = 'twoPlayer';
+            const t = translations[currentLang];
+            player1Name = document.getElementById('p1NameInput').value.trim() || t.defaultP1;
+            player2Name = document.getElementById('p2NameInput').value.trim() || t.defaultP2;
+            setupGameUI();
+        }
+
+        function startBotMode(level) {
+            playSound('move');
+            gameMode = 'bot';
+            botDifficulty = level;
+            const t = translations[currentLang];
+            player1Name = document.getElementById('p1NameInput').value.trim() || t.defaultP1;
+            
+            let lvlName = level === 'easy' ? t.diffEasy : level === 'medium' ? t.diffMedium : t.diffHard;
+            player2Name = t.botName + ' (' + lvlName + ')';
+            
+            document.getElementById('difficultyScreen').classList.add('hidden');
+            setupGameUI();
+        }
+
+        function backToMenu() {
+            playSound('move');
+            gameActive = false;
+            clearWinningLine();
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('difficultyScreen').classList.add('hidden');
+            document.getElementById('statsModal').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+        }
+
+        function openStatsModal() {
+            playSound('move');
+            loadSavedStats();
+            document.getElementById('statTotal').innerText = stats.total;
+            document.getElementById('statXWins').innerText = stats.xWins;
+            document.getElementById('statOWins').innerText = stats.oWins;
+            document.getElementById('statDraws').innerText = stats.draws;
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('statsModal').classList.remove('hidden');
+        }
+
+        function closeStatsModal() {
+            playSound('move');
+            document.getElementById('statsModal').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+        }
+
+        function clearStoredStats() {
+            playSound('move');
+            stats = { total: 0, xWins: 0, oWins: 0, draws: 0 };
+            saveStats();
+            openStatsModal();
+        }
+
+        /* --- GAMEPLAY LOGIC --- */
+        function setupGameUI() {
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            document.getElementById('p1Label').innerText = `${player1Name} (X)`;
+            document.getElementById('p2Label').innerText = `${player2Name} (O)`;
+
+            scores = { X: 0, O: 0, draw: 0 };
+            updateScoreDisplay();
+            resetCurrentRound();
+        }
+
+        function resetCurrentRound() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = startingPlayer;
+            gameActive = true;
+            clearWinningLine();
+            renderBoard();
+            updateTurnIndicator();
+
+            if (gameMode === 'bot' && currentPlayer === 'O') {
+                setTimeout(makeBotMove, 450);
+            }
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('scoreX').innerText = scores.X;
+            document.getElementById('scoreO').innerText = scores.O;
+            document.getElementById('scoreDraw').innerText = scores.draw;
+        }
+
+        function updateTurnIndicator() {
+            const banner = document.getElementById('turnBanner');
+            const boxX = document.getElementById('scoreBoxX');
+            const boxO = document.getElementById('scoreBoxO');
+            const t = translations[currentLang];
+
+            boxX.classList.remove('turn-active');
+            boxO.classList.remove('turn-active');
+
+            if (currentPlayer === 'X') {
+                banner.innerText = `${t.turnPrefix}${player1Name} (X)`;
+                banner.className = "w-full py-2 px-4 rounded-xl glass-box text-center text-xs font-bold tracking-wide text-cyan-300 transition-all";
+                boxX.classList.add('turn-active');
+            } else {
+                banner.innerText = `${t.turnPrefix}${player2Name} (O)`;
+                banner.className = "w-full py-2 px-4 rounded-xl glass-box text-center text-xs font-bold tracking-wide text-pink-300 transition-all";
+                boxO.classList.add('turn-active');
+            }
+        }
+
+        function renderBoard() {
+            for (let i = 0; i < 9; i++) {
+                const cell = document.getElementById(`cell-${i}`);
+                cell.innerText = board[i];
+                cell.className = "cell glass-button rounded-2xl flex items-center justify-center text-5xl font-black transition duration-150";
+
+                if (board[i] === 'X') {
+                    cell.classList.add('text-cyan-400', 'glow-cyan', 'animate-pop');
+                } else if (board[i] === 'O') {
+                    cell.classList.add('text-pink-400', 'glow-pink', 'animate-pop');
+                }
+            }
+            handleCanvasResize();
+        }
+
+        function cellClicked(index) {
+            if (!gameActive || board[index] !== '') return;
+            if (gameMode === 'bot' && currentPlayer === 'O') return;
+
+            processMove(index, currentPlayer);
+
+            if (gameActive && gameMode === 'bot' && currentPlayer === 'O') {
+                setTimeout(makeBotMove, 400);
+            }
+        }
+
+        function processMove(index, player) {
+            board[index] = player;
+            playSound('move');
+            renderBoard();
+
+            const winCombo = checkWinningCombo(board, player);
+            if (winCombo) {
+                handleRoundWin(player, winCombo);
+            } else if (board.every(cell => cell !== '')) {
+                handleRoundDraw();
+            } else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                updateTurnIndicator();
+            }
+        }
+
+        function checkWinningCombo(b, player) {
+            return winningCombos.find(combo => combo.every(idx => b[idx] === player));
+        }
+
+        function handleRoundWin(winner, combo) {
+            gameActive = false;
+            playSound('win');
+            scores[winner]++;
+            updateScoreDisplay();
+
+            stats.total++;
+            if (winner === 'X') stats.xWins++; else stats.oWins++;
+            saveStats();
+
+            drawWinningLine(combo, winner);
+            triggerConfetti();
+
+            const winnerName = winner === 'X' ? player1Name : player2Name;
+            const t = translations[currentLang];
+            setTimeout(() => {
+                showGameOverModal('', t.winTitle, `${t.winDesc}${winnerName}`);
+            }, 900);
+        }
+
+        function handleRoundDraw() {
+            gameActive = false;
+            playSound('draw');
+            scores.draw++;
+            updateScoreDisplay();
+
+            stats.total++;
+            stats.draws++;
+            saveStats();
+
+            const t = translations[currentLang];
+            setTimeout(() => {
+                showGameOverModal('', t.drawTitle, t.drawDesc);
+            }, 400);
+        }
+
+        function showGameOverModal(icon, title, desc) {
+            document.getElementById('gameOverIcon').innerText = icon;
+            document.getElementById('gameOverTitle').innerText = title;
+            document.getElementById('gameOverDesc').innerText = desc;
+            document.getElementById('gameOverModal').classList.remove('hidden');
+        }
+
+        function closeGameOverModal() {
+            playSound('move');
+            document.getElementById('gameOverModal').classList.add('hidden');
+            resetCurrentRound();
+        }
+
+        /* --- BOT AI ALGORITHMS --- */
+        function makeBotMove() {
+            if (!gameActive) return;
+
+            let moveIndex;
+            if (botDifficulty === 'easy') {
+                moveIndex = getRandomAvailableMove();
+            } else if (botDifficulty === 'medium') {
+                moveIndex = Math.random() < 0.55 ? getBestMinimaxMove() : getRandomAvailableMove();
+            } else {
+                moveIndex = getBestMinimaxMove();
+            }
+
+            if (moveIndex !== undefined && board[moveIndex] === '') {
+                processMove(moveIndex, 'O');
+            }
+        }
+
+        function getRandomAvailableMove() {
+            const emptyIndices = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+            if (emptyIndices.length === 0) return undefined;
+            return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+        }
+
+        function getBestMinimaxMove() {
+            let bestScore = -Infinity;
+            let move;
+
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === '') {
+                    board[i] = 'O';
+                    let score = minimax(board, 0, false);
+                    board[i] = '';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            return move;
+        }
+
+        function minimax(tempBoard, depth, isMaximizing) {
+            if (checkWinningCombo(tempBoard, 'O')) return 10 - depth;
+            if (checkWinningCombo(tempBoard, 'X')) return depth - 10;
+            if (tempBoard.every(c => c !== '')) return 0;
+
+            if (isMaximizing) {
+                let best = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (tempBoard[i] === '') {
+                        tempBoard[i] = 'O';
+                        best = Math.max(best, minimax(tempBoard, depth + 1, false));
+                        tempBoard[i] = '';
+                    }
+                }
+                return best;
+            } else {
+                let best = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (tempBoard[i] === '') {
+                        tempBoard[i] = 'X';
+                        best = Math.min(best, minimax(tempBoard, depth + 1, true));
+                        tempBoard[i] = '';
+                    }
+                }
+                return best;
+            }
+        }
+
+        /* --- CANVAS WINNING LINE ANIMATION --- */
+        function handleCanvasResize() {
+            const winCanvas = document.getElementById('winningLineCanvas');
+            const parent = winCanvas.parentElement;
+            if (parent) {
+                winCanvas.width = parent.clientWidth;
+                winCanvas.height = parent.clientHeight;
+            }
+
+            const confettiCanvas = document.getElementById('confettiCanvas');
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+
+        function clearWinningLine() {
+            const canvas = document.getElementById('winningLineCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawWinningLine(combo, winner) {
+            const canvas = document.getElementById('winningLineCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const firstCell = document.getElementById(`cell-${combo[0]}`);
+            const lastCell = document.getElementById(`cell-${combo[2]}`);
+            const parentRect = canvas.getBoundingClientRect();
+
+            const rect1 = firstCell.getBoundingClientRect();
+            const rect2 = lastCell.getBoundingClientRect();
+
+            const startX = (rect1.left + rect1.width / 2) - parentRect.left;
+            const startY = (rect1.top + rect1.height / 2) - parentRect.top;
+            const endX = (rect2.left + rect2.width / 2) - parentRect.left;
+            const endY = (rect2.top + rect2.height / 2) - parentRect.top;
+
+            let progress = 0;
+            const lineColor = winner === 'X' ? '#22d3ee' : '#f472b6';
+
+            function animateLine() {
+                if (progress <= 1) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(startX + (endX - startX) * progress, startY + (endY - startY) * progress);
+                    ctx.lineWidth = 8;
+                    ctx.lineCap = 'round';
+                    ctx.strokeStyle = lineColor;
+                    ctx.shadowColor = lineColor;
+                    ctx.shadowBlur = 15;
+                    ctx.stroke();
+
+                    progress += 0.08;
+                    requestAnimationFrame(animateLine);
+                }
+            }
+            animateLine();
+        }
+
+        /* --- CUSTOM CONFETTI EFFECT --- */
+        function triggerConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#22d3ee', '#ec4899', '#a855f7', '#f59e0b', '#10b981'];
+
+            for (let i = 0; i < 75; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 14,
+                    vy: (Math.random() - 0.7) * 14,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rSpeed: (Math.random() - 0.5) * 10
+                });
+            }
+
+            let alpha = 1;
+            function renderConfetti() {
+                if (alpha > 0) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.3;
+                        p.rotation += p.rSpeed;
+
+                        ctx.save();
+                        ctx.globalAlpha = alpha;
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rotation * Math.PI) / 180);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                        ctx.restore();
+                    });
+
+                    alpha -= 0.015;
+                    requestAnimationFrame(renderConfetti);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            renderConfetti();
+        }
+    </script>
+</body>
+</html>
